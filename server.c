@@ -33,10 +33,8 @@ listen(socket_desc , 3);
 //Accept and incoming connection
 puts("Waiting for incoming connections...");
 c = sizeof(struct sockaddr_in);
-new_socket = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
-while(new_socket)
+while( (new_socket = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
 {
-
 puts("Connection accepted");
 //Reply to the client
 message = "Hello Client , I have received your connection. And now I will assign a handler for you\n";
@@ -52,7 +50,6 @@ return 1;
 //Now join the thread , so that we dont terminate before the thread
 //pthread_join( sniffer_thread , NULL);
 puts("Handler assigned");
-
 }
 if (new_socket<0)
 {
@@ -61,19 +58,32 @@ return 1;
 }
 return 0;
 }
-/*
-* This will handle connection for each client
-* */
 void *connection_handler(void *socket_desc)
 {
 //Get the socket descriptor
 int sock = *(int*)socket_desc;
-char *message;
+int read_size;
+char *message , client_message[2000];
 //Send some messages to the client
 message = "Greetings! I am your connection handler\n";
 write(sock , message , strlen(message));
-message = "Its my duty to communicate with you";
+message = "Now type something and i shall repeat what you type \n";
 write(sock , message , strlen(message));
+//Receive a message from client
+while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
+{
+//Send the message back to client
+write(sock , client_message , strlen(client_message));
+}
+if(read_size == 0)
+{
+puts("Client disconnected");
+fflush(stdout);
+}
+else if(read_size == -1)
+{
+perror("recv failed");
+}
 //Free the socket pointer
 free(socket_desc);
 return 0;
